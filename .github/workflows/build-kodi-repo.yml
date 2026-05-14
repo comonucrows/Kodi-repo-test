@@ -1,0 +1,85 @@
+name: Build Kodi Repo
+
+on:
+  workflow_dispatch:
+
+permissions:
+  contents: read
+  pages: write
+  id-token: write
+
+env:
+  KODI_REPO_ID: repository.myrepo
+  KODI_REPO_NAME: MyRepo
+  KODI_REPO_VERSION: 1.0.${{ github.run_number }}
+  KODI_REPO_AUTHOR: MyRepo
+  KODI_REPO_OUTPUT_PATH: _zips/
+
+concurrency:
+  group: build-kodi-repo
+  cancel-in-progress: true
+
+jobs:
+  build:
+    runs-on: ubuntu-latest
+    environment:
+      name: github-pages
+      url: ${{ steps.deployment.outputs.page_url }}
+    steps:
+      - name: Checkout
+        uses: actions/checkout@v4
+
+      - name: Set up Python
+        uses: actions/setup-python@v5
+        with:
+          python-version: "3.x"
+
+      - name: Generate Kodi repository
+        working-directory: tools
+        run: python generate_repo.py
+
+      - name: Copy repository install zip to site root
+        shell: bash
+        run: |
+          repo_name="${KODI_REPO_ID#repository.}"
+          repo_url="https://${repo_name}.github.io/${repo_name}/"
+          repo_zip="${KODI_REPO_ID}-${KODI_REPO_VERSION}.zip"
+          cp "${KODI_REPO_OUTPUT_PATH}${KODI_REPO_ID}/${repo_zip}" "${repo_zip}"
+          printf '<a href="%s">%s</a>\n' "${repo_zip}" "${repo_zip}" > index.html
+          echo "Repository URL: ${repo_url}"
+          echo "Repository install zip: ${repo_url}${repo_zip}"
+          echo "Repository data zip: ${repo_url}${KODI_REPO_OUTPUT_PATH}${KODI_REPO_ID}/${repo_zip}"
+
+      - name: Verify generated repository
+        shell: bash
+        run: |
+          repo_zip="${KODI_REPO_ID}-${KODI_REPO_VERSION}.zip"
+          test -f "${KODI_REPO_OUTPUT_PATH}addons.xml"
+          test -f "${KODI_REPO_OUTPUT_PATH}addons.xml.md5"
+          test -f "${KODI_REPO_OUTPUT_PATH}${KODI_REPO_ID}/${repo_zip}"
+          test -f "${repo_zip}"
+          grep -F "version=\"${KODI_REPO_VERSION}\"" "${KODI_REPO_ID}/addon.xml"
+          grep -F "version=\"${KODI_REPO_VERSION}\"" "${KODI_REPO_OUTPUT_PATH}${KODI_REPO_ID}/addon.xml"
+          grep -F "${repo_zip}" index.html
+          python -c "import hashlib, pathlib, os; output=pathlib.Path(os.environ['KODI_REPO_OUTPUT_PATH']); data=(output/'addons.xml').read_bytes(); expected=(output/'addons.xml.md5').read_text().strip(); actual=hashlib.md5(data).hexdigest(); raise SystemExit(0 if actual == expected else f'addons.xml.md5 mismatch: {actual} != {expected}')"
+
+      - name: Prepare Pages site
+        shell: bash
+        run: |
+          repo_zip="${KODI_REPO_ID}-${KODI_REPO_VERSION}.zip"
+          rm -rf _site
+          mkdir -p _site
+          cp -R "${KODI_REPO_OUTPUT_PATH}" _site/
+          cp "${repo_zip}" _site/
+          cp index.html _site/
+          touch _site/.nojekyll
+
+      - name: Upload Pages artifact
+        uses: actions/upload-pages-artifact@v5
+        with:
+          path: _site
+          include-hidden-files: true
+
+      - name: Deploy to GitHub Pages
+        id: deployment
+        uses: actions/deploy-pages@v4
