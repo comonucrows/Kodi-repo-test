@@ -1,4 +1,4 @@
-# Kodi Repo Generator
+# Kodi Repo Generator !!!
 
 A GitHub-based tool that automatically generates and hosts a personal Kodi add-on repository. Push your add-on source code, and GitHub Actions will build the repository artifacts (zipped add-ons, `addons.xml`, checksums) and publish them to GitHub Pages — giving you a fully hosted Kodi repo with zero manual steps.
 
