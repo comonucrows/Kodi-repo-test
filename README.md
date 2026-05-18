@@ -2,7 +2,7 @@
 
 Generate and host a personal Kodi add-on repository with GitHub Actions and GitHub Pages.
 
-This repository is designed to be used as a GitHub template. Click **Use this template**, create a new repository under your own account, add your Kodi add-ons, and GitHub Actions will publish the generated Kodi repository to GitHub Pages.
+This repository is designed to be used as a GitHub template. Click **Use this template**, create a new repository under your own account, add your Kodi add-ons, and run the GitHub Actions workflow when you are ready to publish.
 
 ## Why Use A Template Instead Of A Fork?
 
@@ -102,13 +102,15 @@ The `repository.*` folder only needs `icon.png` and `fanart.jpg` at first. The w
 
 ### 6. Build And Deploy
 
-Push your changes to `main`:
+The workflow does not run automatically when you upload files. This gives you time to add add-ons, update images, check names, and review the settings before anything is published.
 
-```bash
-git add .
-git commit -m "Configure my Kodi repository"
-git push origin main
-```
+When you are ready:
+
+1. Open the **Actions** tab in your repository.
+2. Select **Build Kodi Repo**.
+3. Click **Run workflow**.
+4. Keep the default branch selected.
+5. Click the green **Run workflow** button.
 
 GitHub Actions will:
 
@@ -117,7 +119,7 @@ GitHub Actions will:
 3. Generate `addons.xml` and `addons.xml.md5`.
 4. Publish the generated site to GitHub Pages.
 
-You can also run the workflow manually from the **Actions** tab.
+When the workflow finishes, your generated repository files will be published to GitHub Pages.
 
 ## Installing In Kodi
 
@@ -182,7 +184,7 @@ Check the generated `repository.*-VERSION.zip` and make sure the repository add-
 
 ### Add-on Does Not Appear
 
-Make sure the add-on folder is at the repository root and contains a valid `addon.xml`. If you update an add-on, bump its version in `addon.xml` before pushing.
+Make sure the add-on folder is at the repository root and contains a valid `addon.xml`. If you update an add-on, bump its version in `addon.xml`, then run **Build Kodi Repo** again from the **Actions** tab.
 
 ## Project Structure
 
