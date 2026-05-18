@@ -4,7 +4,7 @@ on:
   workflow_dispatch:
 
 permissions:
-  contents: read
+  contents: write
   pages: write
   id-token: write
 
@@ -62,6 +62,20 @@ jobs:
           grep -F "version=\"${KODI_REPO_VERSION}\"" "${KODI_REPO_OUTPUT_PATH}${KODI_REPO_ID}/addon.xml"
           grep -F "${repo_zip}" index.html
           python -c "import hashlib, pathlib, os; output=pathlib.Path(os.environ['KODI_REPO_OUTPUT_PATH']); data=(output/'addons.xml').read_bytes(); expected=(output/'addons.xml.md5').read_text().strip(); actual=hashlib.md5(data).hexdigest(); raise SystemExit(0 if actual == expected else f'addons.xml.md5 mismatch: {actual} != {expected}')"
+
+      - name: Commit generated repository output
+        shell: bash
+        run: |
+          git config user.name "github-actions[bot]"
+          git config user.email "41898282+github-actions[bot]@users.noreply.github.com"
+          git add -A
+          if git diff --cached --quiet; then
+            echo "No generated repository changes to commit."
+            exit 0
+          fi
+          git commit -m "Build Kodi repository ${KODI_REPO_VERSION}"
+          git pull --rebase origin "${GITHUB_REF_NAME}"
+          git push origin "HEAD:${GITHUB_REF_NAME}"
 
       - name: Prepare Pages site
         shell: bash
