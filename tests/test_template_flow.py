@@ -44,6 +44,8 @@ class TemplateFlowTests(unittest.TestCase):
         self.assertNotIn("Commit generated repository output", workflow)
         self.assertNotIn("git push origin", workflow)
         self.assertIn("KODI_REPO_URL: https://${{ github.repository_owner }}.github.io/${{ github.event.repository.name }}/", workflow)
+        self.assertIn("deploy:", workflow)
+        self.assertIn("needs: build", workflow)
         self.assertIn("if: github.repository != 'Forking-Help/Kodi-repo-gen'", workflow)
 
 
