@@ -81,6 +81,11 @@ jobs:
           path: _site
           include-hidden-files: true
 
+      - name: Skip deployment in template source repo
+        if: github.repository == 'Forking-Help/Kodi-repo-gen'
+        run: echo "Skipping Pages deployment in the source template repository. Repositories created from this template will deploy after Pages is enabled."
+
       - name: Deploy to GitHub Pages
+        if: github.repository != 'Forking-Help/Kodi-repo-gen'
         id: deployment
         uses: actions/deploy-pages@v4
