@@ -1,0 +1,7 @@
+__pycache__/
+*.py[cod]
+_zips/
+_site/
+*.zip
+index.html
+tmp_generator_check/

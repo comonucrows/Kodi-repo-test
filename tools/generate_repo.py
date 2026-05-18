@@ -13,6 +13,14 @@ def repo_suffix(repo_id):
     return repo_id
 
 
+def resolve_repo_url(repo_id, env=os.environ):
+    repo_url = env.get("KODI_REPO_URL")
+    if repo_url:
+        return repo_url.rstrip("/") + "/"
+    suffix = repo_suffix(repo_id)
+    return "https://" + suffix + ".github.io/" + suffix + "/"
+
+
 class Generator:
     """
     Generate a Kodi repository from the addon folders in the repo root.
@@ -28,7 +36,7 @@ class Generator:
         self.summary = os.environ.get("KODI_REPO_SUMMARY", self.repo_name + " Repository")
         self.description = os.environ.get("KODI_REPO_DESCRIPTION", "Repository from " + self.repo_name + ".")
         self.output_path = os.environ.get("KODI_REPO_OUTPUT_PATH", "_" + repo_suffix(self.addonid) + "/")
-        self.url = "https://" + repo_suffix(self.addonid) + ".github.io/" + repo_suffix(self.addonid) + "/"
+        self.url = resolve_repo_url(self.addonid)
         self.excludes = os.environ.get("KODI_REPO_EXCLUDES", ".psd,.pyo,.pyc,.gitignore,.DS_Store").split(",")
 
         os.chdir(os.path.abspath(os.path.join(self.tools_path, os.pardir)))

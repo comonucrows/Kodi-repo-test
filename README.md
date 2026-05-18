@@ -1,243 +1,204 @@
 # Kodi Repo Generator
 
-A GitHub-based tool that automatically generates and hosts a personal Kodi add-on repository. Push your add-on source code, and GitHub Actions will build the repository artifacts (zipped add-ons, `addons.xml`, checksums) and publish them to GitHub Pages — giving you a fully hosted Kodi repo with zero manual steps.
+Generate and host a personal Kodi add-on repository with GitHub Actions and GitHub Pages.
 
----
+This repository is designed to be used as a GitHub template. Click **Use this template**, create a new repository under your own account, add your Kodi add-ons, and GitHub Actions will publish the generated Kodi repository to GitHub Pages.
 
-## How It Works
+## Why Use A Template Instead Of A Fork?
 
-This project uses **GitHub Actions** to automate the entire Kodi repository build-and-deploy pipeline:
-
-1. You place your Kodi add-on source folders in the repo.
-2. On every push to the main branch, a GitHub Actions workflow runs automatically.
-3. The workflow executes a Python script that:
-   - Scans for add-on folders (each containing an `addon.xml`).
-   - Zips each add-on into a versioned archive.
-   - Generates the `addons.xml` manifest and its MD5 checksum (`addons.xml.md5`).
-   - Builds a repository add-on zip so Kodi users can install your repo as a source.
-4. The generated output is deployed to **GitHub Pages**, making your Kodi repository publicly accessible at `https://YOUR_USERNAME.github.io/Kodi-repo-gen/`.
-
-No local build tools are required — everything runs in the cloud.
-
----
+GitHub adds extra workflow restrictions and approval prompts around forks. A template repository gives each user a clean repo that belongs to them from the start, which makes Actions and Pages easier to enable and reason about.
 
 ## Getting Started
 
-### 1. Fork This Repository
+### 1. Create Your Repository
 
-Click the **Fork** button at the top-right of this page to create your own copy under your GitHub account. This is required because:
-
-- GitHub Pages publishes from **your** fork, giving you a unique URL.
-- GitHub Actions workflows run under **your** account's free Actions minutes.
-- You'll be pushing your own add-on source code to your fork.
-
-After forking, you'll have a repo at:
-```
-https://github.com/YOUR_USERNAME/Kodi-repo-gen
-```
-
-### 2. Clone Your Fork Locally
+1. Open this repository on GitHub.
+2. Click **Use this template**.
+3. Create a new public repository under your GitHub account or organization.
+4. Clone your new repository.
 
 ```bash
-git clone https://github.com/YOUR_USERNAME/Kodi-repo-gen.git
-cd Kodi-repo-gen
+git clone https://github.com/YOUR_USERNAME/YOUR_REPO_NAME.git
+cd YOUR_REPO_NAME
 ```
 
-### 3. Enable GitHub Pages
+### 2. Enable GitHub Pages
 
-1. Go to your forked repo's **Settings** tab.
-2. In the left sidebar, click **Pages**.
-3. Under **Build and deployment**, set the **Source** to `GitHub Actions` (or `Deploy from a branch` if the workflow pushes to a `gh-pages` branch — check the workflow file for specifics).
-4. Click **Save**.
+1. Open your new repository on GitHub.
+2. Go to **Settings**.
+3. Open **Pages**.
+4. Under **Build and deployment**, set **Source** to **GitHub Actions**.
+5. Save the setting.
 
-Your repository will be live at:
+Your repository URL will be:
+
+```text
+https://YOUR_USERNAME.github.io/YOUR_REPO_NAME/
 ```
-https://YOUR_USERNAME.github.io/Kodi-repo-gen/
+
+### 3. Enable GitHub Actions If Prompted
+
+If GitHub shows a prompt on the **Actions** tab, choose the option to enable workflows for your repository.
+
+The workflow only needs:
+
+- `contents: read` to read your add-on source files
+- `pages: write` to create the Pages deployment
+- `id-token: write` to authenticate the Pages deployment
+
+It does not commit generated files back to your repository.
+
+### 4. Configure Your Repository Add-on
+
+Edit `.github/workflows/build-kodi-repo.yml`:
+
+```yaml
+env:
+  KODI_REPO_ID: repository.myrepo
+  KODI_REPO_NAME: MyRepo
+  KODI_REPO_VERSION: 1.0.${{ github.run_number }}
+  KODI_REPO_AUTHOR: MyRepo
+  KODI_REPO_OUTPUT_PATH: _zips/
 ```
 
-### 4. Add Your Add-ons
+Use a unique `KODI_REPO_ID`, usually in the form `repository.yourname`.
 
-Place each add-on's source folder in the root of the repository (or in a designated `src/` directory if the project uses one). Each add-on folder must contain a valid `addon.xml` at its root. For example:
+The workflow sets `KODI_REPO_URL` automatically from your GitHub owner and repository name:
 
+```text
+https://YOUR_USERNAME.github.io/YOUR_REPO_NAME/
 ```
-Kodi-repo-gen/
+
+If you use a custom Pages URL, add or replace this workflow environment value:
+
+```yaml
+KODI_REPO_URL: https://example.com/kodi/
+```
+
+### 5. Add Your Kodi Add-ons
+
+Place each add-on folder in the repository root. Each add-on folder must contain an `addon.xml` file.
+
+```text
+YOUR_REPO_NAME/
 ├── plugin.video.example/
 │   ├── addon.xml
-│   ├── __init__.py
 │   └── ...
-├── script.module.mylib/
-│   ├── addon.xml
-│   └── lib/
-├── repository.YOUR_REPO_NAME/
+├── script.module.example/
 │   ├── addon.xml
 │   └── ...
-├── .github/
-│   └── workflows/
-│       └── repo-gen.yml
-├── _repo_xml_generator.py
-└── README.md
+├── repository.myrepo/
+│   ├── icon.png
+│   └── fanart.jpg
+├── tools/
+│   ├── generate_repo.py
+│   └── template.xml
+└── .github/
+    └── workflows/
+        └── build-kodi-repo.yml
 ```
 
-### 5. Configure the Repository Add-on
+The `repository.*` folder only needs `icon.png` and `fanart.jpg` at first. The workflow generates its `addon.xml` file during the build.
 
-If the project includes a `repository.*` folder, update its `addon.xml` to point to your GitHub Pages URL:
+### 6. Build And Deploy
 
-```xml
-<?xml version="1.0" encoding="UTF-8"?>
-<addon id="repository.YOUR_REPO_NAME"
-       name="Your Repo Name"
-       version="1.0.0"
-       provider-name="Your Name">
-    <extension point="xbmc.addon.repository" name="Your Repo Name">
-        <info compressed="false">https://YOUR_USERNAME.github.io/Kodi-repo-gen/zips/addons.xml</info>
-        <checksum>https://YOUR_USERNAME.github.io/Kodi-repo-gen/zips/addons.xml.md5</checksum>
-        <datadir zip="true">https://YOUR_USERNAME.github.io/Kodi-repo-gen/zips/</datadir>
-    </extension>
-    <extension point="xbmc.addon.metadata">
-        <summary>Your personal Kodi add-on repository</summary>
-        <description>Install and update add-ons from this repository.</description>
-        <platform>all</platform>
-    </extension>
-</addon>
-```
-
-### 6. Push and Let GitHub Actions Build
+Push your changes to `main`:
 
 ```bash
 git add .
-git commit -m "Add my add-ons"
+git commit -m "Configure my Kodi repository"
 git push origin main
 ```
 
-That's it. The GitHub Actions workflow will trigger automatically, build the zips, generate the manifest, and deploy everything to GitHub Pages.
+GitHub Actions will:
 
----
+1. Generate the repository add-on metadata.
+2. Build versioned zip files.
+3. Generate `addons.xml` and `addons.xml.md5`.
+4. Publish the generated site to GitHub Pages.
 
-## GitHub Actions Workflow Explained
+You can also run the workflow manually from the **Actions** tab.
 
-The workflow file lives at `.github/workflows/repo-gen.yml` and is the engine behind this project. Here's what it does step by step:
+## Installing In Kodi
 
-### Trigger
+After the workflow deploys, open your Pages URL in a browser:
 
-```yaml
-on:
-  push:
-    branches: [ main ]
+```text
+https://YOUR_USERNAME.github.io/YOUR_REPO_NAME/
 ```
 
-The workflow runs every time you push commits to the `main` branch. This means any time you add a new add-on, update an existing one, or change any file, the repo is automatically rebuilt and redeployed.
+Install the repository zip shown on that page in Kodi:
 
-### Job Steps (typical flow)
+1. Open Kodi.
+2. Go to **Settings** > **File Manager**.
+3. Add your Pages URL as a source.
+4. Go to **Add-ons** > **Install from zip file**.
+5. Select the repository zip.
+6. After it installs, use **Install from repository** to browse your add-ons.
 
-1. **Checkout** — Pulls your latest code from the repository.
-2. **Set up Python** — Installs Python so the generator script can run.
-3. **Run the generator script** — Executes the Python script (e.g., `_repo_xml_generator.py`) which:
-   - Finds all directories containing an `addon.xml`.
-   - Creates a zip archive for each add-on, named `ADDON_ID-VERSION.zip`.
-   - Generates `addons.xml` (the master manifest listing all add-ons and their metadata).
-   - Generates `addons.xml.md5` (the checksum Kodi uses to detect updates).
-   - Places all output in a `zips/` directory.
-4. **Deploy to GitHub Pages** — Publishes the `zips/` directory (and optionally a `repo/` directory with the installable repository zip) to GitHub Pages so it's publicly accessible.
+## Local Build
 
-### Permissions
+You can test the generator locally if Python 3 is installed:
 
-The workflow needs write access to deploy to Pages. This is typically configured with:
-
-```yaml
-permissions:
-  contents: read
-  pages: write
-  id-token: write
+```bash
+KODI_REPO_ID=repository.myrepo \
+KODI_REPO_NAME=MyRepo \
+KODI_REPO_VERSION=1.0.0 \
+KODI_REPO_AUTHOR=MyRepo \
+KODI_REPO_URL=https://YOUR_USERNAME.github.io/YOUR_REPO_NAME/ \
+python tools/generate_repo.py
 ```
 
-If the workflow pushes to a `gh-pages` branch instead, it will use `GITHUB_TOKEN` with write permissions to that branch.
+On Windows PowerShell:
 
-### Viewing Workflow Runs
-
-You can monitor the build status at any time:
-
-1. Go to your fork on GitHub.
-2. Click the **Actions** tab.
-3. You'll see a list of workflow runs. Click any run to see logs, including which add-ons were zipped and whether the deployment succeeded.
-
-A green checkmark means everything built and deployed successfully. A red X means something went wrong — click into the run to see the error logs.
-
----
-
-## Installing in Kodi
-
-Once your GitHub Pages site is live, you can install your repository in Kodi:
-
-1. Open Kodi and go to **Settings** → **File Manager**.
-2. Click **Add source**.
-3. Enter your GitHub Pages URL as the source:
-   ```
-   https://YOUR_USERNAME.github.io/Kodi-repo-gen/
-   ```
-4. Give it a name (e.g., "My Kodi Repo") and click **OK**.
-5. Go back to the home screen → **Add-ons** → **Install from zip file**.
-6. Select your source and navigate to the repository zip file (e.g., `repository.YOUR_REPO_NAME-1.0.0.zip`).
-7. Once installed, go to **Install from repository** → select your repository → browse and install add-ons.
-
-Kodi will now check your GitHub Pages URL for updates automatically.
-
----
-
-## Updating Add-ons
-
-To publish an update to any add-on:
-
-1. Update the add-on's source code in your local clone.
-2. **Bump the version number** in the add-on's `addon.xml`.
-3. Commit and push:
-   ```bash
-   git add .
-   git commit -m "Update plugin.video.example to v1.2.0"
-   git push origin main
-   ```
-4. GitHub Actions will automatically rebuild and redeploy. Kodi will detect the new version on its next update check.
-
----
+```powershell
+$env:KODI_REPO_ID = "repository.myrepo"
+$env:KODI_REPO_NAME = "MyRepo"
+$env:KODI_REPO_VERSION = "1.0.0"
+$env:KODI_REPO_AUTHOR = "MyRepo"
+$env:KODI_REPO_URL = "https://YOUR_USERNAME.github.io/YOUR_REPO_NAME/"
+python tools/generate_repo.py
+```
 
 ## Troubleshooting
 
-**GitHub Pages not working?**
-Make sure Pages is enabled in your repo settings and the source is configured to match the workflow's deployment method (either `GitHub Actions` or the `gh-pages` branch).
+### The Workflow Does Not Run
 
-**Workflow not running?**
-Check that the workflow file exists at `.github/workflows/repo-gen.yml` and that you're pushing to the correct branch (`main`).
+Open the **Actions** tab and enable workflows if GitHub asks. Also confirm your workflow file exists at `.github/workflows/build-kodi-repo.yml`.
 
-**Kodi not finding add-ons?**
-Verify that the URLs in your repository add-on's `addon.xml` match your actual GitHub Pages URL. The `<info>`, `<checksum>`, and `<datadir>` paths must be correct.
+### Pages Does Not Deploy
 
-**Add-on not appearing after push?**
-Make sure the add-on folder has a valid `addon.xml` at its root and that the version number was incremented from the previous release.
+Open **Settings** > **Pages** and set **Source** to **GitHub Actions**.
 
----
+### Kodi Cannot Find Updates
+
+Check the generated `repository.*-VERSION.zip` and make sure the repository add-on points to your actual Pages URL. The generated `addon.xml` should contain:
+
+```xml
+<info compressed="false">https://YOUR_USERNAME.github.io/YOUR_REPO_NAME/_zips/addons.xml</info>
+<checksum>https://YOUR_USERNAME.github.io/YOUR_REPO_NAME/_zips/addons.xml.md5</checksum>
+<datadir zip="true">https://YOUR_USERNAME.github.io/YOUR_REPO_NAME/_zips/</datadir>
+```
+
+### Add-on Does Not Appear
+
+Make sure the add-on folder is at the repository root and contains a valid `addon.xml`. If you update an add-on, bump its version in `addon.xml` before pushing.
 
 ## Project Structure
 
-```
-Kodi-repo-gen/
-├── .github/
-│   └── workflows/
-│       └── repo-gen.yml          # GitHub Actions workflow
-├── repository.example/           # Repository add-on (rename to yours)
-│   └── addon.xml
-├── plugin.video.example/         # Example add-on (replace with yours)
-│   └── addon.xml
-├── _repo_xml_generator.py        # Script that builds zips and addons.xml
-├── zips/                         # (generated) Output directory for artifacts
-│   ├── addons.xml
-│   ├── addons.xml.md5
-│   ├── plugin.video.example/
-│   │   └── plugin.video.example-1.0.0.zip
-│   └── repository.example/
-│       └── repository.example-1.0.0.zip
+```text
+YOUR_REPO_NAME/
+├── .github/workflows/build-kodi-repo.yml
+├── repository.myrepo/
+│   ├── fanart.jpg
+│   └── icon.png
+├── tools/
+│   ├── generate_repo.py
+│   └── template.xml
 └── README.md
 ```
 
----
+Generated files are published to GitHub Pages as a workflow artifact. They are not committed back to your repository.
 
 ## License
 
